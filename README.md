@@ -141,7 +141,7 @@ It covers the **📑 execution**, which can be found below in this README.
   "run.py"</code></pre>
     </li><br>
 
-  <li>Then a "dist" folder will be created in the project's directory, containing a "0 rename.exe" folder. Inside it, you will find the .exe file and the "_internal" folder.
+  <li>Then a "dist" folder will be created in the project's directory, containing  the .exe file.
     <img src="https://github.com/user-attachments/assets/06193611-8f98-4721-812a-641d40ff30a8" alt="dist folder" loading="lazy">
   </li>
 
