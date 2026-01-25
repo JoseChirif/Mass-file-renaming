@@ -273,7 +273,8 @@ The [Wiki](https://github.com/JoseChirif/Mass-file-renaming-with-excel/wiki) con
 [@Jose Chirif](https://github.com/JoseChirif)
 
 ## 🚀 About me
-I'm an Industrial Engineer specialized in process optimization, business intelligence and data science.
+I'm an Industrial Engineer specialized in process optimization, business intelligence, and Applied Artificial Intelligence. I focus on developing AI-driven solutions and data science tools to automate complex analytical workflows and enhance decision-making.
+
 [Porfolio - Network - Contact](https://linktr.ee/jchirif)
 
 
