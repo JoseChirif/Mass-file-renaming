@@ -55,6 +55,8 @@
     "file_not_created_selected_message": "You selected not to replace the existing file.",
     "file_replaced_title": "Replaced file",
     "file_replaced_message": "The file '{excel_name}' was successfully replaced.",
+    "excel_loading_title": "Creating Excel",
+    "excel_loading_message": "Creating the Excel template, please wait...",
     "success_title": "Successful operation",
     "success_message": "The files were saved correctly in the folder  {folder_with_renamed_files}.",
     "unlocked_title": "Unloked",

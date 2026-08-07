@@ -1,8 +1,6 @@
 # IMPORT LIBRARIES
 import os
 import pandas as pd
-import tkinter as tk
-from tkinter import messagebox
 from openpyxl import load_workbook
 from openpyxl.styles import Font, Protection
 import sys
@@ -11,6 +9,14 @@ import shutil
 import webbrowser
 import json
 import requests
+
+from ui.theme import (
+    ask_yes_no as themed_ask_yes_no,
+    FileProgressDialog,
+    choose_from_options as themed_choose_from_options,
+    show_error as themed_show_error,
+    show_info as themed_show_info,
+)
 
 
 # FUNCTIONS TO MANAGE FILES AND FOLDERS
@@ -253,9 +259,7 @@ def ask_replace(file_already_exist_title, file_already_exist_message):
     Returns:
         bool: True if the user selects "Yes", False if the user selects "No".
     """
-    root = tk.Tk()
-    root.withdraw()  # Hides the main window
-    return messagebox.askyesno(file_already_exist_title, file_already_exist_message)
+    return themed_ask_yes_no(file_already_exist_title, file_already_exist_message)
 
 
 
@@ -270,9 +274,7 @@ def show_error(error_title, error_message):
     Returns:
         None
     """
-    root = tk.Tk()
-    root.withdraw()  # Hides the main window
-    messagebox.showerror(error_title, error_message)
+    themed_show_error(error_title, error_message)
     
 
 def show_message(title, message):
@@ -289,16 +291,11 @@ def show_message(title, message):
     Raises:
         None: This function does not raise any exceptions.
     """
-    # Create a hidden window
-    root = tk.Tk()
-    root.withdraw()  # Hide the main window
     # Convert the message to a string if it is a DataFrame
     if isinstance(message, pd.DataFrame):
         message = message.to_string()  # Convert DataFrame to string
     # Display the message in a popup window
-    messagebox.showinfo(title, message)
-    # Close the window after the message is closed
-    root.destroy()
+    themed_show_info(title, message)
 
 
 
@@ -430,78 +427,7 @@ def show_options(title, option1, option2, border1, border2, cancel_title):
     Returns:
         int: The selected option (1 or 2) or None if canceled.
     """
-    def cancel_current_operation():
-        """
-        This sub-function cancels the operation and closes only the current options window.
-
-        Args:
-            None
-
-        Returns:
-            None
-        """
-        global options_window
-        if options_window:
-            options_window.destroy()  # Closes the options window
-        
-    def select_option(option_number):
-        """
-        Sub-function to handle option selection.
-
-        Args:
-            option_number (int): The number of the selected option (1 or 2).
-
-        Returns:
-            None
-        """
-        nonlocal result
-        result = option_number
-        cancel_current_operation()
-        options_window.quit()  # Closes the options window
-
-    global options_window
-    options_window = tk.Toplevel()  # Create a secondary window
-    options_window.title(title)  # Set the window title
-    
-    # Add the icon to the window
-    options_window.iconbitmap(relative_route_to_file("assets", "icon.ico"))
-
-    # Variable to store the result of the selection
-    result = None
-
-    # Handle the close (X) button of the window
-    options_window.protocol("WM_DELETE_WINDOW", cancel_current_operation)
-
-    # Frame for the first option
-    frame1 = tk.Frame(options_window, highlightbackground=border1, highlightthickness=2)
-    frame1.pack(pady=20, padx=20)
-    
-    button1 = tk.Button(frame1, text=option1, font=("Arial", 10), borderwidth=0, relief="flat",
-                        bg="white", activebackground="lightgrey", 
-                        padx=15, pady=10,  # Padding
-                        command=lambda: select_option(1))
-    button1.pack()
-
-    # Frame for the second option
-    frame2 = tk.Frame(options_window, highlightbackground=border2, highlightthickness=2)
-    frame2.pack(pady=20, padx=20)
-
-    button2 = tk.Button(frame2, text=option2, font=("Arial", 10), borderwidth=0, relief="flat",
-                        bg="white", activebackground="lightgrey", 
-                        padx=15, pady=10,  # Padding
-                        command=lambda: select_option(2))
-    button2.pack()
-
-    # Cancel button
-    cancel_button = tk.Button(options_window, text=cancel_title, font=("Arial", 10), command=cancel_current_operation, 
-                               padx=10, pady=5, bg="red", fg="white")
-    cancel_button.pack(side=tk.BOTTOM, anchor=tk.SE, padx=10, pady=10)  # Bottom-right corner
-
-    # Keep the window open until an option is selected or the window is closed
-    options_window.mainloop()
-
-    # Return the result after completion
-    return result
+    return themed_choose_from_options(title, option1, option2, cancel_title)
 
 
 
@@ -538,55 +464,66 @@ def copy_files_with_new_names(dataframe_to_process, source_folder, destination_f
     statuses = []
     processed_names = set()  # Set to track unique names for 'New full name'
 
-    # Iterate over the DataFrame to copy files and folders
-    for index, row in dataframe_to_process.iterrows():
-        original_full_name = row.iloc[3]  # Column 4 = Original file or folder name
-        new_full_name = row.iloc[4]  # Column 5 = New name for the file or folder in the destination
+    total_files = len(dataframe_to_process)
+    progress = FileProgressDialog(total_files, title="Processing files") if total_files else None
 
-        # Full path for the source file or folder
-        source_path = os.path.join(source_folder, original_full_name)
-        # Full path for the destination file or folder (with "Modified name")
-        destination_path = os.path.join(destination_folder, new_full_name)
+    try:
+        # Iterate over the DataFrame to copy files and folders
+        for position, (_, row) in enumerate(dataframe_to_process.iterrows(), start=1):
+            try:
+                original_full_name = row.iloc[3]  # Column 4 = Original file or folder name
+                new_full_name = row.iloc[4]  # Column 5 = New name for the file or folder in the destination
 
-        # Check if the file or folder exists in the source folder
-        if not os.path.exists(source_path):
-            statuses.append(excel_error_file_doesnt_found + " " + new_full_name)
-            continue  # Skip if it doesn't exist in source
+                # Full path for the source file or folder
+                source_path = os.path.join(source_folder, original_full_name)
+                # Full path for the destination file or folder (with "Modified name")
+                destination_path = os.path.join(destination_folder, new_full_name)
 
-        # Check if the new name has already been processed (duplicate in DataFrame)
-        if new_full_name in processed_names:
-            statuses.append(excel_error_file_already_proceced)
-            continue
-        
-        # Add the new name to the processed set
-        processed_names.add(new_full_name)
+                # Check if the file or folder exists in the source folder
+                if not os.path.exists(source_path):
+                    statuses.append(excel_error_file_doesnt_found + " " + new_full_name)
+                    continue  # Skip if it doesn't exist in source
 
-        # Check if the file or folder already exists in the destination folder
-        if os.path.exists(destination_path):
-            # If it already exists, log the status and continue
-            statuses.append(excel_error_file_already_exist)
-            continue
+                # Check if the new name has already been processed (duplicate in DataFrame)
+                if new_full_name in processed_names:
+                    statuses.append(excel_error_file_already_proceced)
+                    continue
+                
+                # Add the new name to the processed set
+                processed_names.add(new_full_name)
 
-        # Try to copy the file or folder
-        try:
-            if os.path.isdir(source_path):
-                # If it's a folder, copy the entire folder structure
-                shutil.copytree(source_path, destination_path)
-            else:
-                # If it's a file, only copy the file
-                shutil.copy(source_path, destination_path)
+                # Check if the file or folder already exists in the destination folder
+                if os.path.exists(destination_path):
+                    # If it already exists, log the status and continue
+                    statuses.append(excel_error_file_already_exist)
+                    continue
 
-            # Add 'Ok' status if the copy was successful
-            statuses.append("Ok")
-        except FileNotFoundError:
-            # Handle the case where the file is not found
-            statuses.append(excel_template_error_doesnt_found)
-        except PermissionError:
-            # Handle permission errors
-            statuses.append(excel_template_error_not_allowed)
-        except Exception as e:
-            # Handle other errors during the copy process
-            statuses.append(f"Error: {e}")
+                # Try to copy the file or folder
+                try:
+                    if os.path.isdir(source_path):
+                        # If it's a folder, copy the entire folder structure
+                        shutil.copytree(source_path, destination_path)
+                    else:
+                        # If it's a file, only copy the file
+                        shutil.copy(source_path, destination_path)
+
+                    # Add 'Ok' status if the copy was successful
+                    statuses.append("Ok")
+                except FileNotFoundError:
+                    # Handle the case where the file is not found
+                    statuses.append(excel_template_error_doesnt_found)
+                except PermissionError:
+                    # Handle permission errors
+                    statuses.append(excel_template_error_not_allowed)
+                except Exception as e:
+                    # Handle other errors during the copy process
+                    statuses.append(f"Error: {e}")
+            finally:
+                if progress is not None:
+                    progress.update(position)
+    finally:
+        if progress is not None:
+            progress.close()
 
     # Add the list of statuses to the DataFrame as a new column
     dataframe_to_process[excel_column_status] = statuses
@@ -609,11 +546,7 @@ def ask_to_proceed(start_title, start_message):
         bool: Returns True if the user clicks 'Yes', indicating they want to proceed with the process, 
               and False if the user clicks 'No', indicating they do not want to continue.
     """
-    window = tk.Tk()
-    window.withdraw()  # Hide the main window
-    response = messagebox.askyesno(start_title, start_message)
-    window.destroy()
-    return response
+    return themed_ask_yes_no(start_title, start_message)
 
 
 
@@ -649,47 +582,57 @@ def rename_files_locally(df_to_process, directory, error_file_not_found, error_f
     # List to store the status messages
     statuses = []
     processed_names = set()  # Set to track unique names of 'New Complete Name'
+    total_files = len(df_to_process)
+    progress = FileProgressDialog(total_files, title="Processing files") if total_files else None
 
-    # Iterate over the DataFrame to rename files and directories
-    for index, row in df_to_process.iterrows():
-        original_name = row.iloc[3]  # Column 4 = Original file or directory name
-        new_name = row.iloc[4]       # Column 5 = New name for the file or directory
+    try:
+        # Iterate over the DataFrame to rename files and directories
+        for position, (_, row) in enumerate(df_to_process.iterrows(), start=1):
+            try:
+                original_name = row.iloc[3]  # Column 4 = Original file or directory name
+                new_name = row.iloc[4]       # Column 5 = New name for the file or directory
 
-        # Full path of the original file or directory
-        original_path = os.path.join(directory, original_name)
-        # Full path for the new file or directory (in "Modified Name")
-        new_path = os.path.join(directory, new_name)
+                # Full path of the original file or directory
+                original_path = os.path.join(directory, original_name)
+                # Full path for the new file or directory (in "Modified Name")
+                new_path = os.path.join(directory, new_name)
 
-        # Check if the file or directory exists in the source directory
-        if not os.path.exists(original_path):
-            statuses.append(error_file_not_found)
-            continue  # Skip if the original file or directory doesn't exist
+                # Check if the file or directory exists in the source directory
+                if not os.path.exists(original_path):
+                    statuses.append(error_file_not_found)
+                    continue  # Skip if the original file or directory doesn't exist
 
-        # Check if the new name has already been processed (duplicate in DataFrame)
-        if new_name in processed_names:
-            statuses.append(error_file_already_processed)
-            continue
-        
-        # Add the new name to the processed set
-        processed_names.add(new_name)
+                # Check if the new name has already been processed (duplicate in DataFrame)
+                if new_name in processed_names:
+                    statuses.append(error_file_already_processed)
+                    continue
+                
+                # Add the new name to the processed set
+                processed_names.add(new_name)
 
-        # Check if a file or directory with the new name already exists
-        if os.path.exists(new_path):
-            # If it already exists, record the status and continue
-            statuses.append(error_file_already_exists)
-            continue
+                # Check if a file or directory with the new name already exists
+                if os.path.exists(new_path):
+                    # If it already exists, record the status and continue
+                    statuses.append(error_file_already_exists)
+                    continue
 
-        # Try renaming the file or directory
-        try:
-            os.rename(original_path, new_path)
-            # Add 'Ok' status if renaming was successful
-            statuses.append("Ok")
-        except FileNotFoundError:
-            statuses.append(template_error_not_found)
-        except PermissionError:
-            statuses.append(template_error_not_allowed)
-        except Exception as e:
-            statuses.append(f"Error: {e}")
+                # Try renaming the file or directory
+                try:
+                    os.rename(original_path, new_path)
+                    # Add 'Ok' status if renaming was successful
+                    statuses.append("Ok")
+                except FileNotFoundError:
+                    statuses.append(template_error_not_found)
+                except PermissionError:
+                    statuses.append(template_error_not_allowed)
+                except Exception as e:
+                    statuses.append(f"Error: {e}")
+            finally:
+                if progress is not None:
+                    progress.update(position)
+    finally:
+        if progress is not None:
+            progress.close()
 
     # Add the status list to the DataFrame as a new column
     df_to_process[column_status] = statuses
@@ -713,11 +656,16 @@ def adjust_text(event, *args, margin):
     """
     updated_labels = []
     for label in args:
-        # Adjust the text wrapping length to the available width minus the margin
-        new_wraplength = label.winfo_width() - margin
-        if new_wraplength > 0:  # Ensure the new wrap length is positive
-            label.config(wraplength=new_wraplength)
-            updated_labels.append(label)  # Store updated label
+        try:
+            # Only widgets that support wraplength should be adjusted.
+            if "wraplength" not in label.keys():
+                continue
+            new_wraplength = label.winfo_width() - margin
+            if new_wraplength > 0:
+                label.config(wraplength=new_wraplength)
+                updated_labels.append(label)
+        except Exception:
+            continue
 
     return updated_labels  # Return the list of updated labels
 

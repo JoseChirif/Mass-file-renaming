@@ -120,7 +120,9 @@ It covers the **📑 execution**, which can be found below in this README.
 
   <ol>
     <li>Run: <pre><code>python build_exe.py</code></pre>
-      or Run: <pre><code>pyinstaller --onefile --windowed --clean --noupx `
+      or Run: <pre><code>PyInstaller --onefile --windowed --clean --noupx `
+  --collect-all ttkbootstrap `
+  --hidden-import ttkbootstrap `
   --add-data "assets/*;assets" `
   --add-data "config/*;config" `
   --add-data "functions/*;functions" `
@@ -137,7 +139,7 @@ It covers the **📑 execution**, which can be found below in this README.
   --add-data "instructions/pictures/5 - renaming.png;instructions/pictures" `
   --add-data "instructions/pictures/6 - options to modify names.png;instructions/pictures" `
   --icon "assets/icon.ico" `
-  --name "0 rename.exe" `
+  --name "0 rename" `
   "run.py"</code></pre>
     </li><br>
 
@@ -161,7 +163,9 @@ It covers the **📑 execution**, which can be found below in this README.
   <br>
 
   <ol>
-    <li>Run: <pre><code>pyinstaller --windowed --clean --noupx `
+    <li>Run: <pre><code>PyInstaller --windowed --clean --noupx `
+  --collect-all ttkbootstrap `
+  --hidden-import ttkbootstrap `
   --add-data "assets/*;assets" `
   --add-data "config/*;config" `
   --add-data "functions/*;functions" `
@@ -178,7 +182,7 @@ It covers the **📑 execution**, which can be found below in this README.
   --add-data "instructions/pictures/5 - renaming.png;instructions/pictures" `
   --add-data "instructions/pictures/6 - options to modify names.png;instructions/pictures" `
   --icon "assets/icon.ico" `
-  --name "0 rename.exe" `
+  --name "0 rename" `
   "run.py"</code></pre>
     </li><br>
 

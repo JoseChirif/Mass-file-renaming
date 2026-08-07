@@ -1,93 +1,75 @@
-#Import libraries
-import tkinter as tk
-from tkinter import ttk
+from __future__ import annotations
+
 import sys
-import os
-import subprocess
+import webbrowser
+import tkinter as tk
+
+import ttkbootstrap as ttk
 from PIL import Image, ImageTk
 
-# go to the parent directory if you are running this script directly (uncomment the following lines)
-# sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from functions.functions import open_web_page, load_available_languages, load_translations,  get_instructions, adjust_text, execute_script0, execute_script1, execute_script2
-
-# Import parameters from config
 from config.config import icon_picture_png, icon_picture_ico, logo_github_png, __version__
-
-current_version = f'v{__version__}'
-
-language = "en" # default language
-
-
-# Load language names
-names_languages = load_available_languages()
-# Order them alphabetically for the menu
-names_languages = dict(sorted(names_languages.items(), key=lambda item: item[1]))
-
-# Invert the dictionary to facilitate selection
-languages_names = {v: k for k, v in names_languages.items()}
+from functions.functions import (
+    adjust_text,
+    execute_script0,
+    execute_script1,
+    execute_script2,
+    get_instructions,
+    load_available_languages,
+    load_translations,
+)
+from ui.theme import create_main_window
 
 
+CURRENT_VERSION = f"v{__version__}"
+DEFAULT_LANGUAGE = "en"
+REPOSITORY_URL = "https://github.com/JoseChirif/Mass-file-renaming-with-excel"
 
 
-# print(f'names_languages = {names_languages}')
-# print(f'languages_names = {languages_names}')
-
+language = DEFAULT_LANGUAGE
+languages_by_label = dict(sorted(load_available_languages().items(), key=lambda item: item[1]))
+languages_by_name = {value: key for key, value in languages_by_label.items()}
 translations = load_translations(language)
 
-# Declaro textos de locales (load_translations)
-project_title = translations["project_title"]
-language_text = translations['language_text']
-select_an_option_text = translations["select_an_option_text"]
-text_button_1 = translations["text_button_1"]
-text_button_2 = translations["text_button_2"]
-text_button_3 = translations["text_button_3"]
-notes_title = translations["notes_title"]
-notes_content = translations["notes_content"]
-instructions_text = translations["instructions_text"]
-    
 
-# Styles
-background = '#F0F0F0'
-button_padding = 2
-button_spacing = 10
-button_border_width = 2
-button_color_border = "black"
-padding_text_button_x = 20  # Horizontal padding between text and button border
-padding_text_button_y = 2  # Vertical padding between text and button border
-window_size = "650x650"   # Custom window size (width x height)
-margin = 30        # left margin to align texts
-minimum_window_width = 300
-link_color = "#0770E0"
+window = None
+language_var = None
+combo_languages = None
+lbl_project_title = None
+lbl_language = None
+lbl_menu = None
+btn_option_1 = None
+btn_option_2 = None
+btn_option_3 = None
+lbl_notes_title = None
+lbl_notes_content = None
+lbl_instructions = None
+lbl_version = None
+github_button = None
+
+app_logo_image = None
+github_logo_image = None
 
 
+def _load_image(path, size):
+    """Load and resize an image for ttk widgets."""
+    image = Image.open(path)
+    image = image.resize(size, Image.LANCZOS)
+    return ImageTk.PhotoImage(image)
 
 
+def _open_repository():
+    """Open the project repository in the default browser."""
+    webbrowser.open_new_tab(REPOSITORY_URL)
 
-def select_language(event):
-    """
-    Handles the language selection in the application. This function is triggered when the user selects a language from the available options. It updates the interface and loads the corresponding language settings.
 
-    This function is located in src/main_menu.py
-
-    Arg:
-        event (Event): The event object that is passed when the user selects a language from the menu or interface.
-
-    Returns:
-        None: This function does not return any value. It updates the language settings and refreshes the interface according to the selected language.
-    """
-    global language
-    language_selected = combo_languages.get()  # Get the selected language from the Combobox
-    language = languages_names[language_selected]  # Get language code from languages_names
+def _refresh_texts():
+    """Refresh all visible texts after a language change."""
+    global translations
 
     translations = load_translations(language)
 
-    # Update texts with loaded translations
-    global project_title, language_text, select_an_option_text
-    global text_button_1, text_button_2, text_button_3, notes_title, notes_content
-
     project_title = translations["project_title"]
-    language_text = translations['language_text']
+    language_text = translations["language_text"]
     select_an_option_text = translations["select_an_option_text"]
     text_button_1 = translations["text_button_1"]
     text_button_2 = translations["text_button_2"]
@@ -95,249 +77,221 @@ def select_language(event):
     notes_title = translations["notes_title"]
     notes_content = translations["notes_content"]
     instructions_text = translations["instructions_text"]
-    # Update texts in GUI widgets
+
+    window.title(project_title)
     lbl_project_title.config(text=project_title)
-    lbl_languages.config(text=language_text)
+    lbl_language.config(text=language_text)
     lbl_menu.config(text=select_an_option_text)
     btn_option_1.config(text=text_button_1)
     btn_option_2.config(text=text_button_2)
     btn_option_3.config(text=text_button_3)
-    lbl_project_title_notes_content.config(text=notes_title)
+    lbl_notes_title.config(text=notes_title)
     lbl_notes_content.config(text=notes_content)
     lbl_instructions.config(text=instructions_text)
 
+    if language in languages_by_name:
+        language_var.set(languages_by_name[language])
 
 
-    
-    
-# Function to create the main menu
+def select_language(event=None):
+    """Handle a language selection from the combobox."""
+    global language
+
+    selected_label = combo_languages.get()
+    language = languages_by_name.get(selected_label, DEFAULT_LANGUAGE)
+    _refresh_texts()
+
+
+def _open_instructions():
+    """Open the instructions page for the current language."""
+    get_instructions(language)
+
+
+def _close_app():
+    """Close the application cleanly."""
+    if window is not None and window.winfo_exists():
+        window.destroy()
+    sys.exit(0)
+
+
 def main_menu():
-    """
-    Displays the main menu for the project, allowing the user to navigate between different functionalities. 
-    The function customizes the content and interface based on the provided language parameter.
+    """Build and show the main application menu."""
+    global window, language_var, combo_languages
+    global lbl_project_title, lbl_language, lbl_menu
+    global btn_option_1, btn_option_2, btn_option_3
+    global lbl_notes_title, lbl_notes_content, lbl_instructions, lbl_version
+    global github_button, app_logo_image, github_logo_image
 
-    This function is located in src/main_menu.py
+    initial_translations = load_translations(language)
+    project_title = initial_translations["project_title"]
+    language_text = initial_translations["language_text"]
+    select_an_option_text = initial_translations["select_an_option_text"]
+    text_button_1 = initial_translations["text_button_1"]
+    text_button_2 = initial_translations["text_button_2"]
+    text_button_3 = initial_translations["text_button_3"]
+    notes_title = initial_translations["notes_title"]
+    notes_content = initial_translations["notes_content"]
+    instructions_text = initial_translations["instructions_text"]
 
-    Arg:
-        language (str): The language code (e.g., 'en', 'es') passed to customize the language-specific content and labels on the menu.
+    window = create_main_window(project_title, icon_picture_ico, size="650x700", min_width=300)
+    window.protocol("WM_DELETE_WINDOW", _close_app)
+    window.resizable(True, True)
 
-    Returns:
-        None: This function does not return any value. It opens the main menu interface and handles user interaction for navigation.
-    """
-    global window, combo_languages # Make 'window' and combo_languages global
-    global lbl_project_title, lbl_languages, lbl_menu, language_text, btn_option_1, btn_option_2, btn_option_3, lbl_project_title_notes_content, lbl_notes_content, lbl_instructions  # Make the widgets global to update them in select_language..
-    window = tk.Tk()
-    window.title(project_title)
-    
-    # Set the minimum width
-    window.wm_minsize(minimum_window_width, 0)
-    
-    # Set window size and background size
-    window.geometry(window_size)
-    window.configure(bg=background)
+    app_logo_image = _load_image(icon_picture_png, (50, 50))
+    github_logo_image = _load_image(logo_github_png, (20, 20))
 
-    # Make the window come to the foreground
-    window.attributes("-topmost", True)
-    window.after(1, lambda: window.attributes("-topmost", False))  # Return to normal state after opening
-    
-    # Add the icon to the window
-    window.iconbitmap(icon_picture_ico)
-    
-    # Close the whole program when I close the menu
-    window.protocol("WM_DELETE_WINDOW", lambda: (window.destroy(), sys.exit()))
-    
-    
+    main_frame = ttk.Frame(window, style="App.TFrame", padding=(30, 24, 30, 16))
+    main_frame.pack(fill="both", expand=True)
 
+    body_frame = ttk.Frame(main_frame, style="App.TFrame")
+    body_frame.pack(side="top", fill="x")
 
-    
-    
-    
-    ## TITLE
-    empty_space = tk.Frame(window, height=20)  # An empty frame
-    empty_space.pack()
-    # Create a frame for the project_title and the icon_picture_png image
-    frame_project_title = tk.Frame(window, bg=background)
-    frame_project_title.pack(pady=10, padx=margin, fill='x')
+    footer_frame = ttk.Frame(main_frame, style="App.TFrame")
+    footer_frame.pack(side="bottom", fill="x", pady=(18, 0))
 
-    # Load the icon_picture_png
-    img = Image.open(icon_picture_png)
-    img = img.resize((50, 50), Image.LANCZOS)  # Sets the icon size
-    icon_picture_png_tk = ImageTk.PhotoImage(img)
-    
+    header_frame = ttk.Frame(body_frame, style="App.TFrame")
+    header_frame.pack(fill="x")
 
+    brand_frame = ttk.Frame(header_frame, style="App.TFrame")
+    brand_frame.pack(side="left", fill="x", expand=True)
 
-    # Label for the icon_picture_png
-    lbl_icon_picture_png = tk.Label(frame_project_title, image=icon_picture_png_tk, bg=background)
-    lbl_icon_picture_png.image = icon_picture_png_tk  # Keep a reference to prevent deletion
-    lbl_icon_picture_png.pack(side=tk.LEFT)
+    lbl_logo = ttk.Label(brand_frame, image=app_logo_image, style="App.TLabel")
+    lbl_logo.image = app_logo_image
+    lbl_logo.pack(side="left", padx=(0, 12))
 
-    # project_title
-    lbl_project_title = tk.Label(frame_project_title, text=project_title, font=("Arial", 14, "bold"), bg=background)
-    lbl_project_title.pack(fill='x', expand=True, padx=10)
-    
-    
-    
-    ## LANGUAGES
-    # Create a frame to contain the Combobox
-    frame_language = tk.Frame(window, bg=background)  # Create a frame with the window background
-    # Label for “languages” in boldface type
-    lbl_languages = tk.Label(frame_language, text=language_text, font=("Arial", 10, "bold"), bg=background, anchor="e")
-    lbl_languages.pack(side=tk.LEFT, padx=(0, 5))  # Packing the label on the left with a right margin
-    
-    # Drop-down menu to select language using ttk.Combobox
-    variable_language = tk.StringVar(window)
-    variable_language.set(names_languages[language])  # Value with the full name of the language
+    lbl_project_title = ttk.Label(
+        brand_frame,
+        text=project_title,
+        style="Title.TLabel",
+        wraplength=430,
+        justify="left",
+        anchor="w",
+    )
+    lbl_project_title.pack(side="left", fill="x", expand=True)
 
-    # Create a Combobox for the language to display the full names
-    combo_languages = ttk.Combobox(frame_language, textvariable=variable_language, values=list(names_languages.values()))
-    combo_languages.bind("<<ComboboxSelected>>", select_language)  # Calling the function when selecting a language
-    # Packs the Combobox on the right with a specific margin
-    combo_languages.pack(side=tk.RIGHT, padx=margin)
+    github_button = ttk.Button(
+        header_frame,
+        text="GitHub",
+        image=github_logo_image,
+        compound="left",
+        command=_open_repository,
+        bootstyle="light",
+        cursor="hand2",
+        padding=(10, 6),
+    )
+    github_button.image = github_logo_image
+    github_button.pack(side="right")
 
-    # Pack the frame in the window
-    frame_language.pack(side=tk.TOP, anchor='ne', padx=(margin, 10), pady=(2, 0))
-    
-    
-    
-    
- 
-    
-    
-    ## OPTIONS
-    frame_options_and_notes = tk.Frame(window, bg=background)
-    frame_options_and_notes.pack(expand=True, fill='both', pady=5)
-    
-    # Select an option text
-    lbl_menu = tk.Label(frame_options_and_notes, text=select_an_option_text, font=("Arial", 10, "bold"), bg=background, anchor="w")
-    lbl_menu.pack(expand=True, fill='both', pady=5, padx=margin, anchor="w")
+    ttk.Separator(body_frame, orient="horizontal").pack(fill="x", pady=(18, 18))
 
-    # Button 1: Create Excel
-    btn_option_1 = tk.Button(frame_options_and_notes, text=text_button_1, font=("Arial", 10), command=lambda: execute_script0(language),
-                            borderwidth=button_border_width, highlightbackground=button_color_border,
-                            padx=padding_text_button_x, pady=padding_text_button_y)
-    btn_option_1.pack(expand=True, fill='both', padx=margin+10, pady=(button_padding, button_spacing))
+    language_frame = ttk.Frame(body_frame, style="App.TFrame")
+    language_frame.pack(fill="x", pady=(0, 16))
+    language_frame.columnconfigure(0, weight=1)
 
-    # Button 2: Modify names
-    btn_option_2 = tk.Button(frame_options_and_notes, text=text_button_2, font=("Arial", 10),command=lambda: execute_script1(language),
-                            borderwidth=button_border_width, highlightbackground=button_color_border,
-                            padx=padding_text_button_x, pady=padding_text_button_y)
-    btn_option_2.pack(expand=True, fill='both', padx=margin+10, pady=(button_padding, button_spacing))
+    lbl_language = ttk.Label(language_frame, text=language_text, style="Section.TLabel")
+    lbl_language.grid(row=0, column=0, sticky="e", padx=(0, 10))
 
-    # Button 3: Unlock Excel sheet
-    btn_option_3 = tk.Button(frame_options_and_notes, text=text_button_3, font=("Arial", 10),command=lambda: execute_script2(language),
-                            borderwidth=button_border_width, highlightbackground=button_color_border,
-                            padx=padding_text_button_x, pady=padding_text_button_y)
-    btn_option_3.pack(expand=True, fill='both', padx=margin+10, pady=(button_padding, button_spacing))
+    language_var = tk.StringVar(value=languages_by_label.get(language, next(iter(languages_by_label.values()))))
+    combo_languages = ttk.Combobox(
+        language_frame,
+        textvariable=language_var,
+        values=list(languages_by_label.values()),
+        state="readonly",
+        width=24,
+        bootstyle="secondary",
+    )
+    combo_languages.grid(row=0, column=1, sticky="e")
+    combo_languages.bind("<<ComboboxSelected>>", select_language)
 
-    # Notes title text
-    lbl_project_title_notes_content = tk.Label(frame_options_and_notes, text=notes_title, font=("Arial", 10, "bold"), bg=background, anchor="w")
-    lbl_project_title_notes_content.pack(expand=True, fill='both', pady=(0, 0), padx=margin, anchor="n")
+    lbl_menu = ttk.Label(
+        body_frame,
+        text=select_an_option_text,
+        style="Section.TLabel",
+        wraplength=560,
+        justify="left",
+        anchor="w",
+    )
+    lbl_menu.pack(fill="x", pady=(4, 12))
 
-    # notes content
-    lbl_notes_content = tk.Label(frame_options_and_notes, text=notes_content, font=("Arial", 10), 
-                                justify="left", bg=background, anchor="n")
-    lbl_notes_content.pack(expand=True, fill='both', padx=margin, pady=(0, 0))
+    options_frame = ttk.Frame(body_frame, style="App.TFrame")
+    options_frame.pack(fill="x")
 
+    btn_option_1 = ttk.Button(
+        options_frame,
+        text=text_button_1,
+        command=lambda: execute_script0(language),
+        bootstyle="primary",
+        padding=(20, 12),
+    )
+    btn_option_1.pack(fill="x", pady=(0, 10))
 
+    btn_option_2 = ttk.Button(
+        options_frame,
+        text=text_button_2,
+        command=lambda: execute_script1(language),
+        bootstyle="success",
+        padding=(20, 12),
+    )
+    btn_option_2.pack(fill="x", pady=(0, 10))
 
+    btn_option_3 = ttk.Button(
+        options_frame,
+        text=text_button_3,
+        command=lambda: execute_script2(language),
+        bootstyle="warning",
+        padding=(20, 12),
+    )
+    btn_option_3.pack(fill="x")
 
+    notes_frame = ttk.Frame(body_frame, style="App.TFrame")
+    notes_frame.pack(fill="x", pady=(18, 0))
 
+    lbl_notes_title = ttk.Label(
+        notes_frame,
+        text=notes_title,
+        style="Section.TLabel",
+        wraplength=560,
+        justify="left",
+        anchor="w",
+    )
+    lbl_notes_title.pack(fill="x", anchor="w", pady=(0, 4))
 
+    lbl_notes_content = ttk.Label(
+        notes_frame,
+        text=notes_content,
+        style="Body.TLabel",
+        wraplength=560,
+        justify="left",
+        anchor="w",
+    )
+    lbl_notes_content.pack(fill="x", anchor="w")
 
-    ## REPOSITORY
-    # Create a frame to align the icon_picture_png and the license
-    frame_github = tk.Frame(window, bg=background)
-    frame_github.place(relx=1.0, rely=0.0, anchor="se", x=-margin + 15, y=38)
+    lbl_instructions = ttk.Label(
+        footer_frame,
+        text=instructions_text,
+        style="SmallLink.TLabel",
+        cursor="hand2",
+    )
+    lbl_instructions.pack(side="left")
+    lbl_instructions.bind("<Button-1>", lambda event: _open_instructions())
 
-    # Github text
-    lbl_github_text = tk.Label(frame_github, text="GitHub", font=("Bell MT", 14), bg=background, fg=link_color, cursor="hand2") 
-    lbl_github_text.pack(side=tk.LEFT, padx=(100, 0), pady=(5, 0))
-    
-    # Repository link (with the text)
-    lbl_github_text.bind("<Button-1>", lambda e: open_web_page('https://github.com/JoseChirif/Mass-file-renaming-with-excel','https://github.com/JoseChirif?tab=repositories', 'https://github.com/JoseChirif'))
-    
-    #PNG    
-    # Load Github icon
-    img_logo_github = Image.open(logo_github_png)
-    img_logo_github = img_logo_github.resize((30, 30), Image.LANCZOS)
-    icon_picture_png_Link_repositorio_tk = ImageTk.PhotoImage(img_logo_github)
+    lbl_version = ttk.Label(footer_frame, text=CURRENT_VERSION, style="Small.TLabel")
+    lbl_version.pack(side="right")
 
-    # Label for the icon_picture_png of Link_repository
-    lbl_github_logo = tk.Label(frame_github, image=icon_picture_png_Link_repositorio_tk, bg=background, cursor="hand2")  # Hand cursor
-    lbl_github_logo.image = icon_picture_png_Link_repositorio_tk  
-    lbl_github_logo.pack(side=tk.LEFT, padx=(0, 10))  # Add padding on the right side
+    window.bind(
+        "<Configure>",
+        lambda event: adjust_text(
+            event,
+            lbl_project_title,
+            lbl_menu,
+            lbl_notes_title,
+            lbl_notes_content,
+            margin=20,
+        ),
+    )
 
-    # Repository link (with the icon)
-    lbl_github_logo.bind("<Button-1>", lambda e: open_web_page('https://github.com/JoseChirif/Mass-file-renaming-with-excel','https://github.com/JoseChirif?tab=repositories', 'https://github.com/JoseChirif'))
-    
-    
-
-
-
-    ## LICENSE
-    #frame_github = tk.Frame(window, bg=background)
-    #frame_github.place(relx=1.0, rely=1.0, anchor="se", x=-10, y=-5)
-    
-    def get_license_route():
-        """
-        Returns the absolute path to the LICENSE.txt file located in the project's parent directory.
-
-        This function is located in src/main_menu.py
-
-        Returns:
-            str: The absolute path to LICENSE.txt, allowing other parts of the application to access the license file regardless of the current working directory.
-        """
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'LICENSE'))
-        
-    def open_license():
-        """
-        Opens the LICENSE file in Notepad, regardless of its extension.
-        """
-        license_path = get_license_route()
-        try:
-            subprocess.run(["notepad", license_path], check=True)
-        except FileNotFoundError:
-            print("Notepad not found. Please ensure it is installed.")
-        except Exception as e:
-            print(f"An error occurred while trying to open the license file: {e}")
-
-
-    # Show "MIT License" 
-    lbl_license = tk.Label(window, text="MIT License", font=("Arial", 9), fg=link_color, cursor="hand2")    
-    lbl_license.place(relx=1.0, rely=1.0, anchor="se", x=-margin, y=-5)
-    # Llamar a open_license al hacer clic
-    lbl_license.bind("<Button-1>", lambda e: open_license())
-
-
-    ## Version
-    lbl_version = tk.Label(window, text=current_version, font=("Arial", 9), fg="black")    
-    lbl_version.place(relx=1.0, rely=1.0, anchor="se", x=-margin, y=-25)
-
-
-    ## Instructions
-    lbl_instructions = tk.Label(window, text=instructions_text, font=("Arial", 9, "bold"), fg="black", cursor="hand2", bg=window.cget('bg'), relief="raised", bd=2, padx=5, pady=5)
-
-    lbl_instructions.place(relx=0.0, rely=1.0, anchor="sw", x=margin-10, y=-5)
-    # Open the instructions page by clicking on
-    lbl_instructions.bind("<Button-1>", lambda e: get_instructions(language))
-    
-    
-    
-    
-    
-    ## FINAL SETTINGS
-    window.bind("<Configure>", lambda event: adjust_text(event, lbl_project_title, lbl_menu, btn_option_1, btn_option_2, btn_option_3, lbl_project_title_notes_content, lbl_notes_content, margin=20))
-    
     window.mainloop()
 
 
-
-
-
-    
-    
-# Call main_menu
 if __name__ == "__main__":
     main_menu()
-    
-    

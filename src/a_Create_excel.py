@@ -99,6 +99,20 @@ def main(language):
     # Create a DataFrame with the data
     df = pd.DataFrame(data, columns=[excel_column_original_name, excel_column_extention, excel_column_new_name])
 
+    def save_excel_template():
+        """Write the Excel template and format it."""
+        df.to_excel(excel_save_route, index=False)
+        modify_excel_dataframe(
+            excel_save_route,
+            excel_aditional_rows_to_unlock,
+            notes_title,
+            excel_note1,
+            excel_note2,
+            excel_note3,
+            excel_note4,
+            excel_note5,
+        )
+
 
 
     ##EXCEL
@@ -110,8 +124,7 @@ def main(language):
             exit_if_directly_executed()
         else:
             try:
-                df.to_excel(excel_save_route, index=False)
-                modify_excel_dataframe(excel_save_route, excel_aditional_rows_to_unlock, notes_title, excel_note1, excel_note2, excel_note3, excel_note4, excel_note5)
+                save_excel_template()
                 show_message(file_replaced_title, file_replaced_message)
             except PermissionError: # If the excel is open.
                 show_error(error_text, error_open_file)
@@ -119,8 +132,7 @@ def main(language):
                 exit_if_directly_executed()
     else:
         try:
-            df.to_excel(excel_save_route, index=False)
-            modify_excel_dataframe(excel_save_route, excel_aditional_rows_to_unlock, notes_title, excel_note1, excel_note2, excel_note3, excel_note4, excel_note5)
+            save_excel_template()
             show_message(file_created_title, file_created_message)
         except PermissionError: # If the excel is open.
             show_error(error_text, error_open_file)

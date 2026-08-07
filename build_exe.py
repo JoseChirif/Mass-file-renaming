@@ -1,15 +1,20 @@
 import subprocess
+import sys
 
 def build_exe():
     """This function pack the project into a onefile.exe file
     """
     subprocess.run([
         #onefile
-        "pyinstaller",
+        sys.executable,
+        "-m",
+        "PyInstaller",
         "--onefile",
         "--windowed",
         "--clean",
         "--noupx",
+        "--collect-all", "ttkbootstrap",
+        "--hidden-import", "ttkbootstrap",
         
         # Adding project's folders
         "--add-data", "assets/*;assets",
@@ -32,7 +37,7 @@ def build_exe():
         
         # icon, name and file to run in .exe
         "--icon", "assets/icon.ico",
-        "--name", "0 rename.exe",
+        "--name", "0 rename",
         "run.py"
     ])
 

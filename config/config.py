@@ -2,7 +2,7 @@
 from functions.functions import relative_route_to_file, get_filename_or_directory,  load_available_languages, load_translations, delete_extention
 
 # Version
-__version__ = '1.0.2'
+__version__ = '2.0.0'
 
 # Common routes and variables
 # icon_picture_ico

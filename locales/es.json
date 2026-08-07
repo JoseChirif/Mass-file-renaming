@@ -55,6 +55,8 @@
     "file_not_created_selected_message": "Usted selecciono no reemplazar el archivo existente.",
     "file_replaced_title": "Archivo reemplazado",
     "file_replaced_message": "El archivo '{excel_name}' se reemplazo satisfactoriamente.",
+    "excel_loading_title": "Creando Excel",
+    "excel_loading_message": "Creando la plantilla de Excel, espera un momento...",
     "success_title": "Éxito",
     "success_message": "Los archivos fueron guardados correctamente en la carpeta {folder_with_renamed_files}.",
     "unlocked_title": "Desbloqueado",
